@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">ImgMap</string>
+    <string name="waiting_for_location">Waiting for location...</string>
+</resources>

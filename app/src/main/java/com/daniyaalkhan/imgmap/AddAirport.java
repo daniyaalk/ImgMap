@@ -1,0 +1,45 @@
+package com.daniyaalkhan.imgmap;
+
+import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
+import android.text.InputFilter;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+
+public class AddAirport extends AppCompatActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_add_airport);
+
+        final EditText airportICAOText = findViewById(R.id.airportICAO);
+
+        final Button addAirportButton = findViewById(R.id.addAirport);
+
+        airportICAOText.setFilters(new InputFilter[]{new InputFilter.AllCaps(), new InputFilter.LengthFilter(4)});
+
+        addAirportButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                //Check if airport ICAO is 4 characters
+                if(airportICAOText.getText().length()!=4)
+                    airportICAOText.setError("Enter a valid ICAO code");
+                else{
+
+                    DBHandler db = new DBHandler(v.getContext());
+                    String icao = airportICAOText.getText().toString();
+
+                    if(db.getAirportExists(icao))
+                        airportICAOText.setError("Airport already exists in your list");
+                    //else db.addAirport(airportICAOText.getText().toString());
+                    //TODO: Intent for AddCharts
+
+                }
+
+            }
+        });
+    }
+}

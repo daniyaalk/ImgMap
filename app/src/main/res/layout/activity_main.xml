@@ -11,31 +11,15 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/textView"
+        <Button
+            android:id="@+id/addAirport"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/waiting_for_location" />
+            android:text="+ Add Airport" />
 
-        <FrameLayout
-            android:layout_width="wrap_content"
-            android:layout_gravity="center"
-            android:layout_height="wrap_content">
-
-            <ImageView
-                android:id="@+id/chartView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:scaleType="fitStart"
-                android:adjustViewBounds="true"/>
-            <ImageView
-                android:id="@+id/locationPin"
-                android:layout_width="50px"
-                android:layout_height="50px"
-                android:src="@drawable/locationpin"/>
-
-        </FrameLayout>
-
+        <ListView
+            android:id="@+id/airportsList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
     </LinearLayout>
-
 </android.support.constraint.ConstraintLayout>

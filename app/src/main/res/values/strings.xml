@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">ImgMap</string>
     <string name="waiting_for_location">Waiting for location...</string>
+    <string name="title_activity_main2">Main2Activity</string>
+    <string name="title_activity_add_airport">AddAirport</string>
+    <string name="airport_icao">Airport ICAO</string>
 </resources>

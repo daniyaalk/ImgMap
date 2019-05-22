@@ -1,10 +1,14 @@
 package com.daniyaalkhan.imgmap;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class DBHandler extends SQLiteOpenHelper {
 
@@ -20,7 +24,7 @@ public class DBHandler extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db){
         String[] queries = {
                 "CREATE TABLE airports(id INTEGER PRIMARY KEY AUTOINCREMENT, icao VARCHAR(4));",
-                "CREATE TABLE charts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, chart BLOB, cords1 DOUBLE, cords2 DOUBLE, pixel1 DOUBLE, pixel2 DOUBLE)"
+                "CREATE TABLE charts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, chart BLOB, cords1 DOUBLE, cords2 DOUBLE, pixel1 DOUBLE, pixel2 DOUBLE, icao VARCHAR(4))"
         };
 
         for (String query:queries) {
@@ -33,12 +37,16 @@ public class DBHandler extends SQLiteOpenHelper {
 
     }
 
-    public void addAirport(String icao){
+    public long addAirport(String icao){
 
         SQLiteDatabase db = getWritableDatabase();
 
-        String query = "INSERT INTO airports(id, icao) VALUES(NULL, '"+icao+"')";
-        db.execSQL(query);
+        String query = "INSERT INTO airports(id, icao) VALUES(NULL, ?)";
+
+        ContentValues contentValues = new ContentValues();
+        contentValues.put("icao", icao);
+        long id = db.insert("airports", null, contentValues);
+        return id;
 
     }
 
@@ -53,6 +61,30 @@ public class DBHandler extends SQLiteOpenHelper {
 
         if(cursor.getInt(0)>0) return true;
         else return false;
+
+    }
+
+    public List<String> getAirportsList(){
+
+        List<String> AirportsList = new ArrayList<String>();
+
+        SQLiteDatabase db = getReadableDatabase();
+
+        String query = "SELECT icao FROM airports";
+        Cursor cursor = db.rawQuery(query, null);
+        cursor.moveToFirst();
+        int icao = cursor.getColumnIndex("icao");
+        Log.d("Airport count", String.valueOf(cursor.getCount()));
+        if(cursor.moveToFirst()){
+
+            while(!cursor.isAfterLast()){
+                AirportsList.add(cursor.getString(icao));
+                cursor.moveToNext();
+            }
+
+        }
+
+        return AirportsList;
 
     }
 }

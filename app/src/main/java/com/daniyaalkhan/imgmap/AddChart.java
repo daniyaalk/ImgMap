@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 public class AddChart extends AppCompatActivity {
 
@@ -30,6 +31,8 @@ public class AddChart extends AppCompatActivity {
         this.chartView = findViewById(R.id.chartView);
         this.chartView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
 
+        final TextView chartNameView = findViewById(R.id.chartName);
+
         final Intent getImage = new Intent();
         getImage.setAction(Intent.ACTION_GET_CONTENT);
         getImage.setType("image/*");
@@ -44,9 +47,12 @@ public class AddChart extends AppCompatActivity {
         confirmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                String name = chartNameView.getText().toString();
+
                 Intent addPoints = new Intent(getApplicationContext(), AddPoints.class);
                 addPoints.putExtra("icao", icao);
                 addPoints.putExtra("uri", selectedFile.toString());
+                addPoints.putExtra("name", name);
                 startActivity(addPoints);
             }
         });

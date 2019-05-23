@@ -126,6 +126,7 @@ public class AddPoints extends AppCompatActivity {
 
                         //Set variables
                         String icao=extras.getString("icao");
+                        String name=extras.getString("name");
 
                         Uri uri = Uri.parse(extras.getString("uri"));
 
@@ -143,7 +144,7 @@ public class AddPoints extends AppCompatActivity {
                         Log.d("Reached", "yup");
                         DBHandler db = new DBHandler(context);
                         boolean addToDB = db.addChart(icao, Uri.parse(extras.getString("uri")),
-                                geocoords1, geocoords2, pixelcoords1, pixelcoords2, context);
+                                geocoords1, geocoords2, pixelcoords1, pixelcoords2, name, context);
                         if(!addToDB){
 
                             Toast failed = Toast.makeText(context, "Failed to add to database", Toast.LENGTH_SHORT);
@@ -168,6 +169,7 @@ public class AddPoints extends AppCompatActivity {
                         //Send previous data as is
                         addNextPoints.putExtra("uri", extras.getString("uri"));
                         addNextPoints.putExtra("icao", extras.getString("icao"));
+                        addNextPoints.putExtra("name", extras.getString("name"));
 
                         //Send coordinates
                         float[] geoPointsFloat = {Float.valueOf(geoCoordsString[0]), Float.valueOf(geoCoordsString[1])};

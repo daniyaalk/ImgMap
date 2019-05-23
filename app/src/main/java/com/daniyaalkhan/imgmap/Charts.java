@@ -65,7 +65,6 @@ public class Charts extends AppCompatActivity {
             chartsStringList.add(chart.name);
         }
 
-        Log.d("ChartsList", chartsList.toString());
         final String[] charts = new String[chartsStringList.size()];
         //Convert List to String Array
         chartsStringList.toArray(charts);

@@ -98,7 +98,7 @@ public class DBHandler extends SQLiteOpenHelper {
     }
 
     public boolean addChart(String icao, Uri uri, PointF geoCoords1, PointF geoCoords2,
-                            PointF pixelCoords1, PointF pixelCoords2, Context context){
+                            PointF pixelCoords1, PointF pixelCoords2, String name, Context context){
         //TODO: Convert GeoCoords and PixelCoords to PointF[]
 
         SQLiteDatabase db = getWritableDatabase();
@@ -127,7 +127,7 @@ public class DBHandler extends SQLiteOpenHelper {
         chartValues.put("pixel2x", Math.round(pixelCoords2.x));
         chartValues.put("pixel2y", Math.round(pixelCoords2.y));
         chartValues.put("chart", byteArray);
-        chartValues.put("name", "check");
+        chartValues.put("name", name);
 
         try{
             db.insert("charts", null, chartValues);
@@ -150,19 +150,15 @@ public class DBHandler extends SQLiteOpenHelper {
         int idColumn = cursor.getColumnIndex("id");
         int nameColumn = cursor.getColumnIndex("name");
 
-        Chart tempChart = new Chart();
 
         if (cursor.moveToFirst()){
             while(!cursor.isAfterLast()){
 
-                tempChart.id = cursor.getInt(idColumn);
-                tempChart.name = cursor.getString(nameColumn);
-                chartsList.add(tempChart);
+                chartsList.add(new Chart(cursor.getInt(idColumn), cursor.getString(nameColumn)));
 
                 cursor.moveToNext();
             }
         }
-
         return chartsList;
 
     }

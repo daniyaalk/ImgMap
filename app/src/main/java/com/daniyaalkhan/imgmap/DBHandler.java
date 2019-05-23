@@ -5,8 +5,12 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Bitmap;
+import android.graphics.PointF;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
-
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +28,12 @@ public class DBHandler extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db){
         String[] queries = {
                 "CREATE TABLE airports(id INTEGER PRIMARY KEY AUTOINCREMENT, icao VARCHAR(4));",
-                "CREATE TABLE charts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, chart BLOB, cords1 DOUBLE, cords2 DOUBLE, pixel1 DOUBLE, pixel2 DOUBLE, icao VARCHAR(4))"
+                "CREATE TABLE charts(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, chart BLOB, " +
+                        "cords1x DOUBLE, cords1y DOUBLE, " +
+                        "cords2x DOUBLE, cords2y DOUBLE, " +
+                        "pixel1x INT, pixel1y INT, " +
+                        "pixel2x INT, pixel2y INT, " +
+                        "icao VARCHAR(4))"
         };
 
         for (String query:queries) {
@@ -40,8 +49,6 @@ public class DBHandler extends SQLiteOpenHelper {
     public long addAirport(String icao){
 
         SQLiteDatabase db = getWritableDatabase();
-
-        String query = "INSERT INTO airports(id, icao) VALUES(NULL, ?)";
 
         ContentValues contentValues = new ContentValues();
         contentValues.put("icao", icao);
@@ -86,5 +93,41 @@ public class DBHandler extends SQLiteOpenHelper {
 
         return AirportsList;
 
+    }
+
+    public boolean addChart(String icao, Uri uri, PointF geoCoords1, PointF geoCoords2,
+                            PointF pixelCoords1, PointF pixelCoords2, Context context){
+        //TODO: Convert GeoCoords and PixelCoords to PointF[]
+
+        SQLiteDatabase db = getWritableDatabase();
+
+        //Code for converting image to bitmap
+        Bitmap chartBitmap;
+        try{
+            chartBitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
+        }catch (Exception e){
+            return false;
+        }
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        chartBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        byte[] byteArray = stream.toByteArray();
+        chartBitmap.recycle();
+
+        ContentValues chartValues = new ContentValues();
+        chartValues.put("icao", icao);
+        chartValues.put("cords1x", Double.valueOf(geoCoords1.x));
+        chartValues.put("cords1y", Double.valueOf(geoCoords1.y));
+        chartValues.put("cords2x", Double.valueOf(geoCoords2.x));
+        chartValues.put("cords2y", Double.valueOf(geoCoords2.y));
+        chartValues.put("pixel1x", Math.round(pixelCoords1.x));
+        chartValues.put("pixel1y", Math.round(pixelCoords1.y));
+        chartValues.put("pixel2x", Math.round(pixelCoords2.x));
+        chartValues.put("pixel2y", Math.round(pixelCoords2.y));
+        chartValues.put("chart", byteArray);
+        chartValues.put("name", "check");
+
+        db.insert("charts", null, chartValues);
+        return true;
     }
 }

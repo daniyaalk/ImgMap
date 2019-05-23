@@ -1,9 +1,12 @@
 package com.daniyaalkhan.imgmap;
 
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.net.Uri;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -15,20 +18,25 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.w3c.dom.Text;
 
+import java.io.ByteArrayOutputStream;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 
 public class AddPoints extends AppCompatActivity {
 
     private ImageView pinView;
+    private Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_points);
+
+        this.context = this;
 
         final Bundle extras = getIntent().getExtras();
 
@@ -121,12 +129,35 @@ public class AddPoints extends AppCompatActivity {
 
                         Uri uri = Uri.parse(extras.getString("uri"));
 
-                        PointF geocords1, geocords2, pixelcords1, pixelcords2;
+                        PointF geocoords1, geocoords2, pixelcoords1, pixelcoords2;
 
-                        //float[] receivedGeoCords=extras.getFloatArray("geocoords1"), receivedPixelCoords=extras.getFloatArray("pixelcoords1");
-                        //geocords1 = new PointF(receivedGeoCords[0], receivedGeoCords[1]);
-                        //pixelcords1 = new PointF(receivedPixelCoords[0], receivedPixelCoords[1]);
+                        float[] receivedGeoCoords=extras.getFloatArray("geocoords1"), receivedPixelCoords=extras.getFloatArray("pixelcoords1");
+                        geocoords1 = new PointF(receivedGeoCoords[0], receivedGeoCoords[1]);
+                        pixelcoords1 = new PointF(receivedPixelCoords[0], receivedPixelCoords[1]);
 
+                        //Get coords of second point from EditText
+                        geocoords2 = new PointF(Float.valueOf(geoCoordsString[0]), Float.valueOf(geoCoordsString[1]));
+                        pixelcoords2 = new PointF(Float.valueOf(pixelCoordsString[0]), Float.valueOf(pixelCoordsString[1]));
+
+                        //Send Received values to DB
+                        Log.d("Reached", "yup");
+                        DBHandler db = new DBHandler(context);
+                        boolean addToDB = db.addChart(icao, Uri.parse(extras.getString("uri")),
+                                geocoords1, geocoords2, pixelcoords1, pixelcoords2, context);
+                        if(!addToDB){
+
+                            Toast failed = Toast.makeText(context, "Failed to add to database", Toast.LENGTH_SHORT);
+                            failed.show();
+                            Intent goHome = new Intent(getApplicationContext(), MainActivity.class);
+                            startActivity(goHome);
+
+                        }else{
+                            Toast.makeText(context, "Added to database", Toast.LENGTH_SHORT).show();
+                            Intent success = new Intent(getApplicationContext(), Charts.class);
+                            success.putExtra("icao", icao);
+                            startActivity(success);
+
+                        }
                         //Log.d("GeoCords",geocords1.toString());
 
                     }else{

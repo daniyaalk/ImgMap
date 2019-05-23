@@ -12,7 +12,9 @@ import android.provider.MediaStore;
 import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DBHandler extends SQLiteOpenHelper {
 
@@ -127,7 +129,41 @@ public class DBHandler extends SQLiteOpenHelper {
         chartValues.put("chart", byteArray);
         chartValues.put("name", "check");
 
-        db.insert("charts", null, chartValues);
-        return true;
+        try{
+            db.insert("charts", null, chartValues);
+            return true;
+        }catch (Exception e){
+            Log.e("DBInsertException", e.getMessage());
+            return false;
+        }
+    }
+
+    public List<Chart> getChartsList(String icao){
+
+        List<Chart> chartsList = new ArrayList<>();
+
+        SQLiteDatabase db = getReadableDatabase();
+
+        String query = "SELECT id, name FROM charts WHERE icao=?";
+        Cursor cursor = db.rawQuery(query, new String[]{icao});
+
+        int idColumn = cursor.getColumnIndex("id");
+        int nameColumn = cursor.getColumnIndex("name");
+
+        Chart tempChart = new Chart();
+
+        if (cursor.moveToFirst()){
+            while(!cursor.isAfterLast()){
+
+                tempChart.id = cursor.getInt(idColumn);
+                tempChart.name = cursor.getString(nameColumn);
+                chartsList.add(tempChart);
+
+                cursor.moveToNext();
+            }
+        }
+
+        return chartsList;
+
     }
 }

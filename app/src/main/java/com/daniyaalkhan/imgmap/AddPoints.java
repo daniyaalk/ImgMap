@@ -3,6 +3,7 @@ package com.daniyaalkhan.imgmap;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.net.Uri;
@@ -23,6 +24,7 @@ import android.widget.Toast;
 import org.w3c.dom.Text;
 
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 
@@ -129,6 +131,7 @@ public class AddPoints extends AppCompatActivity {
                         String name=extras.getString("name");
 
                         Uri uri = Uri.parse(extras.getString("uri"));
+                        Log.i("URIx", uri.getPath());
 
                         PointF geocoords1, geocoords2, pixelcoords1, pixelcoords2;
 
@@ -140,11 +143,39 @@ public class AddPoints extends AppCompatActivity {
                         geocoords2 = new PointF(Float.valueOf(geoCoordsString[0]), Float.valueOf(geoCoordsString[1]));
                         pixelcoords2 = new PointF(Float.valueOf(pixelCoordsString[0]), Float.valueOf(pixelCoordsString[1]));
 
+                        //Get Scaling
+                        int imageViewHeight=chartView.getHeight(), imageViewWidth=chartView.getWidth();
+                        int imageResx, imageResy;
+
+                        //Get Image dimensions
+                        BitmapFactory.Options dimensions = new BitmapFactory.Options();
+                        dimensions.inJustDecodeBounds = true;
+                        Bitmap mBitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_4444);
+                        try{
+                            InputStream ims = getContentResolver().openInputStream(uri);
+                            mBitmap = BitmapFactory.decodeStream(ims);
+                        }catch (Exception e){
+                            Toast.makeText(context,"Couldn't add chart", Toast.LENGTH_SHORT).show();
+                            Intent goHome = new Intent(getApplicationContext(), MainActivity.class);
+                            startActivity(goHome);
+                        }
+                        imageResx = mBitmap.getWidth();
+                        imageResy = mBitmap.getHeight();
+
+                        //Set Scaled values
+                        PointF scaledPixelcoords1, scaledPixelcoords2;
+                        scaledPixelcoords1 = new PointF(
+                                (pixelcoords1.x/imageViewWidth)*imageResx, (pixelcoords1.y/imageViewHeight)*imageResy
+                        );
+                        scaledPixelcoords2 = new PointF(
+                                (pixelcoords2.x/imageViewWidth)*imageResx, (pixelcoords2.y/imageViewHeight)*imageResy
+                        );
+
                         //Send Received values to DB
                         Log.d("Reached", "yup");
                         DBHandler db = new DBHandler(context);
-                        boolean addToDB = db.addChart(icao, Uri.parse(extras.getString("uri")),
-                                geocoords1, geocoords2, pixelcoords1, pixelcoords2, name, context);
+                        boolean addToDB = db.addChart(icao, uri,
+                                geocoords1, geocoords2, scaledPixelcoords1, scaledPixelcoords2, name, context);
                         if(!addToDB){
 
                             Toast failed = Toast.makeText(context, "Failed to add to database", Toast.LENGTH_SHORT);

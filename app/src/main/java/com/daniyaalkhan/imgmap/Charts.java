@@ -77,6 +77,9 @@ public class Charts extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 int chartId = chartsList.get(position).id;
                 Log.d("ChartId", String.valueOf(chartId));
+                Intent openChart = new Intent(getApplicationContext(), ChartActivity.class);
+                openChart.putExtra("id", chartId);
+                startActivity(openChart);
             }
         });
 

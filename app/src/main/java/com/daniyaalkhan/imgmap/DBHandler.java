@@ -111,6 +111,7 @@ public class DBHandler extends SQLiteOpenHelper {
             return false;
         }
 
+        //Convert Image to ByteArray
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         chartBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         byte[] byteArray = stream.toByteArray();
@@ -160,6 +161,33 @@ public class DBHandler extends SQLiteOpenHelper {
             }
         }
         return chartsList;
+
+    }
+
+    public Chart getChart(int id){
+
+        SQLiteDatabase db = getReadableDatabase();
+
+        String query = "SELECT * FROM charts WHERE id=?";
+        Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(id)});
+
+        cursor.moveToFirst();
+
+        Chart chart = new Chart();
+
+        chart.id = id;
+        chart.name = cursor.getString(cursor.getColumnIndex("name"));
+        chart.coords1 = new double[][]{
+                {cursor.getDouble(cursor.getColumnIndex("cords1x")), cursor.getDouble(cursor.getColumnIndex("cords1y"))},
+                {cursor.getDouble(cursor.getColumnIndex("pixel1y")), cursor.getDouble(cursor.getColumnIndex("pixel1x"))}
+        };
+        chart.coords2 = new double[][]{
+                {cursor.getDouble(cursor.getColumnIndex("cords2x")), cursor.getDouble(cursor.getColumnIndex("cords2y"))},
+                {cursor.getDouble(cursor.getColumnIndex("pixel2y")), cursor.getDouble(cursor.getColumnIndex("pixel2x"))}
+        };
+        chart.setBitmap(cursor.getBlob(cursor.getColumnIndex("chart")));
+
+        return chart;
 
     }
 }

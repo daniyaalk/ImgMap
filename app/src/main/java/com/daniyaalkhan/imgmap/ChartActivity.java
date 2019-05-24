@@ -7,10 +7,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
-import android.graphics.PointF;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.PermissionChecker;
@@ -33,10 +33,10 @@ public class ChartActivity extends Activity implements LocationListener{
     private ImgMap imgMap;
     private ImageView locationPin;
 
-
-
-    private int chartPicture;
     private ImageView chartView;
+
+    private int imageWidth, imageHeight;
+    private double[][] cords1, cords2;
 
     String[] appPermissions = {
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -49,41 +49,16 @@ public class ChartActivity extends Activity implements LocationListener{
         super.onCreate(savedInstanceState);
         setContentView(R.layout.chart_activity);
 
-        double[][] cords1, cords2;
-
-        Bundle chartName = getIntent().getExtras();
-        Log.i("chartName", chartName.getString("icao"));
-
-        if(chartName.getString("icao").equals("VAAU")){
-            this.chartPicture = R.drawable.mozilla_page_011;
-
-            //Cords for VAAU testing:
-            cords1 = new double[][]{{20.16666667, 75.16666667}, {264, 192}};
-            cords2 = new double[][]{{19.66666667, 75.66666667}, {1054, 960}};
-        }else{
-            this.chartPicture = R.drawable.vidp_sid;
-
-            //Cords for VIDP testing:
-            cords1 = new double[][]{{28.75000000,75.88222222}, {197, 225}};
-            cords2 = new double[][]{{27.83333333,77.71666667}, {700, 1100}};
-        }
-
+        Bundle extras = getIntent().getExtras();
 
         this.chartView = findViewById(R.id.chartView);
-        this.chartView.setImageResource(this.chartPicture);
         this.locationPin = findViewById(R.id.locationPin);
         this.textView = findViewById(R.id.textView);
 
-        //Get image dimensions
-        BitmapFactory.Options dimensions = new BitmapFactory.Options();
-        dimensions.inJustDecodeBounds = true;
-        BitmapFactory.decodeResource(getResources(), chartPicture, dimensions);
-        int imageHeight = dimensions.outHeight;
-        int imageWidth =  dimensions.outWidth;
-
+        setChartData(extras.getInt("id"));
 
         imgMap = new ImgMap(cords1, cords2);
-        imgMap.setScaleRes(imageWidth, imageHeight);
+        imgMap.setScaleRes(this.imageWidth, this.imageHeight);
 
         /* LOCATION CODE BELOW THIS POINT */
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -97,7 +72,19 @@ public class ChartActivity extends Activity implements LocationListener{
 
     }
 
-    private PointF pointf = new PointF();
+    private void setChartData(int id){
+
+        DBHandler db = new DBHandler(this);
+
+        Chart chart = db.getChart(id);
+
+        this.chartView.setImageBitmap(chart.chartBitmap);
+        this.cords1 = chart.coords1;
+        this.cords2 = chart.coords2;
+        this.imageHeight = chart.imageHeight;
+        this.imageWidth = chart.imageWidth;
+
+    }
 
     @Override
     public void onLocationChanged(Location location){

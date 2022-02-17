@@ -81,8 +81,8 @@ public class ChartActivity extends Activity implements LocationListener{
         this.chartView.setImageBitmap(chart.chartBitmap);
         this.cords1 = chart.coords1;
         this.cords2 = chart.coords2;
-        this.imageHeight = chart.imageHeight;
-        this.imageWidth = chart.imageWidth;
+        this.imageHeight = chart.chartBitmap.getHeight();
+        this.imageWidth = chart.chartBitmap.getWidth();
 
     }
 

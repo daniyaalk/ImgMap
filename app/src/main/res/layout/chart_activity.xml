@@ -17,24 +17,23 @@
             android:layout_height="wrap_content"
             android:text="@string/waiting_for_location" />
 
-        <FrameLayout
-            android:layout_width="wrap_content"
-            android:layout_gravity="center"
-            android:layout_height="wrap_content">
+<!--        <FrameLayout-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_gravity="center"-->
+<!--            android:layout_height="wrap_content">-->
 
-            <ImageView
-                android:id="@+id/chartView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:scaleType="fitStart"
-                android:adjustViewBounds="true"/>
-            <ImageView
-                android:id="@+id/locationPin"
-                android:layout_width="50px"
-                android:layout_height="50px"
-                android:src="@drawable/locationpin"/>
+<!--            <ImageView-->
+<!--                android:id="@+id/chartView"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:scaleType="fitStart"-->
+<!--                android:adjustViewBounds="true"/>-->
+            <com.daniyaalkhan.imgmap.PinView
+                android:id="@+id/pinView"
+                android:layout_height="fill_parent"
+                android:layout_width="fill_parent" />
 
-        </FrameLayout>
+<!--        </FrameLayout>-->
 
     </LinearLayout>
 

@@ -6,19 +6,20 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
+import android.graphics.PointF;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.PermissionChecker;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.davemorrissey.labs.subscaleview.ImageSource;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,9 +32,8 @@ public class ChartActivity extends Activity implements LocationListener{
     private TextView textView;
 
     private ImgMap imgMap;
-    private ImageView locationPin;
+    private PinView pinView;
 
-    private ImageView chartView;
 
     private int imageWidth, imageHeight;
     private double[][] cords1, cords2;
@@ -51,9 +51,8 @@ public class ChartActivity extends Activity implements LocationListener{
 
         Bundle extras = getIntent().getExtras();
 
-        this.chartView = findViewById(R.id.chartView);
-        this.locationPin = findViewById(R.id.locationPin);
         this.textView = findViewById(R.id.textView);
+        this.pinView = findViewById(R.id.pinView);
 
         setChartData(extras.getInt("id"));
 
@@ -78,7 +77,10 @@ public class ChartActivity extends Activity implements LocationListener{
 
         Chart chart = db.getChart(id);
 
-        this.chartView.setImageBitmap(chart.chartBitmap);
+        Log.d("chartBitmap", chart.chartBitmap.toString());
+
+//        this.chartView.setImage(ImageSource.bitmap(chart.chartBitmap));
+        this.pinView.setImage(ImageSource.bitmap(chart.chartBitmap));
         this.cords1 = chart.coords1;
         this.cords2 = chart.coords2;
         this.imageHeight = chart.chartBitmap.getHeight();
@@ -91,14 +93,20 @@ public class ChartActivity extends Activity implements LocationListener{
         double lat=location.getLatitude(), lon=location.getLongitude();
         textView.setText("Latitude:"+lat+" Longitude:"+lon+" @"+location.getAccuracy());
 
-        Log.i("Chart dimensions", chartView.getWidth()+" "+chartView.getHeight());
-        float[] offsets = imgMap.getScaledOffsets(lat, lon, chartView.getWidth(), chartView.getHeight());
-        locationPin.setX(offsets[0]-(float)25);
-        locationPin.setY(offsets[1]-(float)25);
+        float[] offsets = imgMap.getOffsets(lat, lon);
+        PointF pinOffsets = new PointF(offsets[0], offsets[1]);
 
-        if(location.hasBearing()) {
-            locationPin.setRotation(location.getBearing());
+
+        float rotation = 0;
+        if (location.hasBearing()){
+            rotation = location.getBearing();
         }
+
+        this.pinView.setPin(
+                pinOffsets,
+                rotation);
+
+
     }
     @Override
     public void onProviderDisabled(String provider) {

@@ -63,10 +63,10 @@ public class ChartActivity extends Activity implements LocationListener{
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         if(PermissionChecker.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED){
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
         }else{
             checkAndRequestPermissions();
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, this);
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
         }
 
     }
@@ -91,7 +91,15 @@ public class ChartActivity extends Activity implements LocationListener{
     @Override
     public void onLocationChanged(Location location){
         double lat=location.getLatitude(), lon=location.getLongitude();
-        textView.setText("Latitude:"+lat+" Longitude:"+lon+" @"+location.getAccuracy());
+
+        String textViewText = String.format(
+                "Lat: %.3f, Lon: %.3f @ %.1f, %.3f ft. %f kt.",
+                lat, lon, location.getAccuracy(), location.getAltitude()*3.281, location.getSpeed()*1.944);
+//        textView.setText(
+//                "Latitude:"+lat+" Longitude:"+lon+" @"+location.getAccuracy()+
+//                "\n"+location.getAltitude()*3.281 +" ft");
+        textView.setText(textViewText);
+
 
         float[] offsets = imgMap.getOffsets(lat, lon);
         PointF pinOffsets = new PointF(offsets[0], offsets[1]);

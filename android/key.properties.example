@@ -1,0 +1,5 @@
+# Copy to key.properties (gitignored) and fill in. Never commit the real one.
+storeFile=/home/you/keys/imgmap-upload.jks
+storePassword=
+keyAlias=upload
+keyPassword=

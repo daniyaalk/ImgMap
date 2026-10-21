@@ -9,6 +9,7 @@ import 'charts_screen.dart';
 import '../location/app_location.dart';
 import '../location/location_controller.dart';
 import 'country_picker.dart';
+import 'disclaimer.dart';
 import 'flight_widgets.dart';
 
 class AirportsScreen extends StatelessWidget {
@@ -28,6 +29,12 @@ class AirportsScreen extends StatelessWidget {
         title: const Text('Airports'),
         actions: [
           const _GpsIndicator(),
+          IconButton(
+            tooltip: 'About & disclaimer',
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const AboutScreen())),
+          ),
           // Airway maps come from the AIP sources this build can reach.
           ListenableBuilder(
             listenable: registry,

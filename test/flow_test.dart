@@ -44,6 +44,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
     }
 
+    // First launch: the disclaimer comes first.
+    await tester.tap(find.byType(Checkbox));
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Try the demo'));
     await tester.pumpAndSettle();
     expect(find.text('VIDP'), findsOneWidget);

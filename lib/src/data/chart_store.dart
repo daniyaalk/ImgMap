@@ -34,6 +34,16 @@ class ChartStore extends ChangeNotifier {
   final Map<String, Airport> _airports = {};
   final Map<String, ChartRecord> _charts = {};
 
+  /// The disclaimer version the user last accepted; 0 if never.
+  int _disclaimerAccepted = 0;
+
+  int get disclaimerAccepted => _disclaimerAccepted;
+
+  Future<void> acceptDisclaimer(int version) async {
+    _disclaimerAccepted = version;
+    await _commit();
+  }
+
   /// The country whose airways the en-route map shows, by AIP source id.
   String? _enrouteSourceId;
 
@@ -194,6 +204,8 @@ class ChartStore extends ChangeNotifier {
     }
     final settings = json['settings'] as Map<String, dynamic>? ?? const {};
     _enrouteSourceId = settings['enrouteSource'] as String?;
+    _disclaimerAccepted =
+        (settings['disclaimerAccepted'] as num?)?.toInt() ?? 0;
   }
 
   Future<void> _removeOrphanImages() async {
@@ -211,6 +223,7 @@ class ChartStore extends ChangeNotifier {
       'charts': [for (final c in _charts.values) c.toJson()],
       'settings': {
         if (_enrouteSourceId != null) 'enrouteSource': _enrouteSourceId,
+        if (_disclaimerAccepted > 0) 'disclaimerAccepted': _disclaimerAccepted,
       },
     });
     // Chain writes so a slow write can never land after a newer one.

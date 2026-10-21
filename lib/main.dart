@@ -6,6 +6,7 @@ import 'src/data/chart_store.dart';
 import 'src/location/app_location.dart';
 import 'src/location/location_controller.dart';
 import 'src/ui/airports_screen.dart';
+import 'src/ui/disclaimer.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,8 @@ class ImgMapApp extends StatelessWidget {
   final AipRegistry registry;
   final LocationController _location = LocationController();
 
+  bool get _accepted => store.disclaimerAccepted >= disclaimerVersion;
+
   @override
   Widget build(BuildContext context) {
     const seed = Color(0xFF1E5AA8);
@@ -38,9 +41,23 @@ class ImgMapApp extends StatelessWidget {
       ),
       // One location session for the whole app, started on the home
       // screen so maps open with a fix.
-      builder: (context, child) =>
-          AppLocation(controller: _location, child: child!),
-      home: AirportsScreen(store: store, registry: registry),
+      builder: (context, child) => ListenableBuilder(
+        listenable: store,
+        builder: (context, _) => AppLocation(
+          controller: _location,
+          enabled: _accepted,
+          child: child!,
+        ),
+      ),
+      // The disclaimer must be accepted before the app can be used.
+      home: ListenableBuilder(
+        listenable: store,
+        builder: (context, _) => _accepted
+            ? AirportsScreen(store: store, registry: registry)
+            : DisclaimerScreen(
+                onAccept: () => store.acceptDisclaimer(disclaimerVersion),
+              ),
+      ),
     );
   }
 }

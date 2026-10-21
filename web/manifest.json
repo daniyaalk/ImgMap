@@ -1,6 +1,6 @@
 {
-    "name": "ImgMap",
-    "short_name": "ImgMap",
+    "name": "AIPChart",
+    "short_name": "AIPChart",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

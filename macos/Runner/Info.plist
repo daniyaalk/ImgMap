@@ -29,8 +29,8 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSLocationUsageDescription</key>
-	<string>ImgMap shows your position on your charts.</string>
+	<string>AIPChart shows your position on your charts.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>ImgMap shows your position on your charts.</string>
+	<string>AIPChart shows your position on your charts.</string>
 </dict>
 </plist>

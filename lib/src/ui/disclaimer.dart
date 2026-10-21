@@ -122,7 +122,7 @@ class DisclaimerText extends StatelessWidget {
         point(1, 'Never use this for actual navigation.', const [
           TextSpan(
             text:
-                'ImgMap is for hobbyists and aviation enthusiasts only. Always '
+                'AIPChart is for hobbyists and aviation enthusiasts only. Always '
                 'use official, current charts and certified equipment.',
           ),
         ]),
@@ -141,7 +141,7 @@ class DisclaimerText extends StatelessWidget {
             Uri(
               scheme: 'mailto',
               path: contactEmail,
-              queryParameters: {'subject': 'ImgMap'},
+              queryParameters: {'subject': 'AIPChart'},
             ),
           ),
           const TextSpan(

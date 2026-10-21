@@ -31,7 +31,7 @@ class ImgMapApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const seed = Color(0xFF1E5AA8);
     return MaterialApp(
-      title: 'ImgMap',
+      title: 'AIPChart',
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: seed)),
       darkTheme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

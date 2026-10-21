@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>ImgMap</string>
+	<string>AIPChart</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -67,8 +67,8 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>ImgMap shows your GPS position on your charts.</string>
+	<string>AIPChart shows your GPS position on your charts.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>ImgMap imports chart images from your photo library.</string>
+	<string>AIPChart imports chart images from your photo library.</string>
 </dict>
 </plist>

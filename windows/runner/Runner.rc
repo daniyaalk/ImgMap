@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.daniyaalkhan" "\0"
-            VALUE "FileDescription", "imgmap" "\0"
+            VALUE "FileDescription", "AIPChart" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "imgmap" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.daniyaalkhan. All rights reserved." "\0"
             VALUE "OriginalFilename", "imgmap.exe" "\0"
-            VALUE "ProductName", "imgmap" "\0"
+            VALUE "ProductName", "AIPChart" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

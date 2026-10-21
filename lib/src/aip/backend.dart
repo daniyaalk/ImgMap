@@ -9,8 +9,12 @@ import '../geo/lat_lng.dart';
 import 'aip_source.dart';
 
 /// Where the backend publishes (see the imgmap-backend repository).
-/// Set at build time: `--dart-define=IMGMAP_BACKEND=https://data.example/`.
-const backendBaseUrl = String.fromEnvironment('IMGMAP_BACKEND');
+/// Override at build time, e.g. for a local test server:
+/// `--dart-define=IMGMAP_BACKEND=http://localhost:8766/`.
+const backendBaseUrl = String.fromEnvironment(
+  'IMGMAP_BACKEND',
+  defaultValue: 'https://charts.daniyaalkhan.com/',
+);
 
 /// Reads the backend's static files. The app never contacts an eAIP: the
 /// backend reads each once per AIRAC cycle, however many people use the

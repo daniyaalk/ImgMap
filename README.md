@@ -50,7 +50,9 @@ sit on the grid lines or fix symbols before relying on it.
 
 ### Pointing the app at a backend
 
-The backend's address is set at build time:
+The app reads `https://charts.daniyaalkhan.com/` by default
+(`backendBaseUrl` in `lib/src/aip/backend.dart`). To use another, set it at
+build time:
 
 ```sh
 flutter build apk --dart-define=IMGMAP_BACKEND=https://data.example.com/

@@ -1,0 +1,27 @@
+AIPChart puts your position on published aviation charts. It's made for aviation enthusiasts, flight simulator fans and curious passengers who want to follow along on the same charts pilots use.
+
+<b>Not for navigation.</b> AIPChart is a hobby project. Never use it to navigate or to plan a real flight. Charts are placed on the map by an automated, AI-assisted pipeline and may be wrong. Always use official, current charts and certified equipment.
+
+<b>Charts from the AIP</b>
+• Browse the charts an airport publishes in its country's Aeronautical Information Publication (AIP): aerodrome and ground movement charts, departures (SIDs), arrivals (STARs), approaches, and obstacle charts.
+• Charts are downloaded from our own mirror, so the app never puts load on the authority's website.
+• India (AAI) is available now. More countries can be added without an app update.
+
+<b>See where you are</b>
+• Charts are georeferenced automatically, so your GPS position appears on them as a moving marker.
+• The chart list shows which charts cover your current position, so you can find the right one quickly.
+• Follow mode, landscape layout, and the screen stays on while a chart is open.
+
+<b>En-route map</b>
+• A map of the published airways and fixes, with search.
+• Simulate a flight along any route to see how it looks.
+
+<b>Your own charts</b>
+• Import a chart image and place a few reference points yourself to georeference it.
+• Everything is stored on your device and works offline once downloaded.
+
+<b>Private by design</b>
+No accounts, no ads, no analytics. Your location never leaves your device.
+
+<b>Open source</b>
+Found a chart in the wrong place, or have an idea? Email me@daniyaalkhan.com, or better still, open a pull request on GitHub: github.com/daniyaalk/ImgMap (app) and github.com/daniyaalk/imgmap-backend (chart pipeline).

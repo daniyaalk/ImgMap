@@ -44,8 +44,6 @@ class ChartStore extends ChangeNotifier {
     await _commit();
   }
 
-  /// AIP charts that couldn't be georeferenced, by [_unusableKey].
-  final Map<String, Set<String>> _unusable = {};
   Future<void> _pendingWrite = Future.value();
 
   /// Opens the store on [storage], defaulting to the platform's own.
@@ -70,24 +68,6 @@ class ChartStore extends ChangeNotifier {
       chartsFor(icao).where((c) => c.georeference != null).toList();
 
   ChartRecord? chart(String id) => _charts[id];
-
-  static String _unusableKey(String sourceId, String icao, String edition) =>
-      '$sourceId|$icao|$edition';
-
-  /// File names of [icao]'s charts in an AIP edition that were tried and
-  /// couldn't be georeferenced.
-  Set<String> unusableCharts(String sourceId, String icao, String edition) =>
-      _unusable[_unusableKey(sourceId, icao, edition)] ?? const {};
-
-  Future<void> markUnusable(
-    String sourceId,
-    String icao,
-    String edition,
-    String fileName,
-  ) async {
-    (_unusable[_unusableKey(sourceId, icao, edition)] ??= {}).add(fileName);
-    await _commit();
-  }
 
   /// The stored copy of an AIP chart, from any edition.
   ChartRecord? chartFromSource(String sourceId, String icao, String fileName) {
@@ -127,7 +107,6 @@ class ChartStore extends ChangeNotifier {
     for (final c in charts) {
       _charts.remove(c.id);
     }
-    _unusable.removeWhere((key, _) => key.split('|')[1] == icao);
     await _commit();
     for (final c in charts) {
       await _storage.deleteImage(c.imageFile);
@@ -215,10 +194,6 @@ class ChartStore extends ChangeNotifier {
     }
     final settings = json['settings'] as Map<String, dynamic>? ?? const {};
     _enrouteSourceId = settings['enrouteSource'] as String?;
-    final unusable = json['unusable'] as Map<String, dynamic>? ?? const {};
-    unusable.forEach((key, files) {
-      _unusable[key] = {for (final f in files as List) f as String};
-    });
   }
 
   Future<void> _removeOrphanImages() async {
@@ -237,7 +212,6 @@ class ChartStore extends ChangeNotifier {
       'settings': {
         if (_enrouteSourceId != null) 'enrouteSource': _enrouteSourceId,
       },
-      'unusable': {for (final e in _unusable.entries) e.key: e.value.toList()},
     });
     // Chain writes so a slow write can never land after a newer one.
     return _pendingWrite = _pendingWrite.then((_) => _storage.writeIndex(data));

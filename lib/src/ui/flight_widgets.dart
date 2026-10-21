@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../geo/coordinate_format.dart';
+import '../geo/lat_lng.dart';
 import '../location/location_controller.dart';
 
 /// Below this ground speed the GPS course is noise, so no track is drawn.
@@ -261,6 +262,44 @@ class LocationBanner extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The current position from real GPS, or null. A simulated flight doesn't
+/// count: it says nothing about where the user actually is.
+LatLng? gpsPosition(LocationController location) {
+  final p = location.position;
+  if (p == null || location.simulating) return null;
+  return LatLng(p.latitude, p.longitude);
+}
+
+/// Marks a chart's thumbnail as covering the current position.
+class PositionBadge extends StatelessWidget {
+  const PositionBadge({super.key, required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        Positioned(
+          right: -6,
+          bottom: -6,
+          child: Container(
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              color: scheme.primary,
+              shape: BoxShape.circle,
+              border: Border.all(color: scheme.surface, width: 2),
+            ),
+            child: Icon(Icons.my_location, size: 14, color: scheme.onPrimary),
+          ),
+        ),
+      ],
     );
   }
 }

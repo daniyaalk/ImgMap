@@ -31,7 +31,16 @@ class ChartSource {
     required this.fileName,
     required this.url,
     required this.category,
+    this.sha256,
+    this.georefRevision,
   });
+
+  /// The PDF this copy was made from.
+  final String? sha256;
+
+  /// The backend's [ChartGeoref.revision] the points came from; a higher
+  /// one means the backend has improved them.
+  final int? georefRevision;
 
   /// [AipSource.id], e.g. `in-aai`.
   final String sourceId;
@@ -52,6 +61,8 @@ class ChartSource {
     'file': fileName,
     'url': url,
     'category': category,
+    if (sha256 != null) 'sha256': sha256,
+    if (georefRevision != null) 'georefRevision': georefRevision,
   };
 
   factory ChartSource.fromJson(Map<String, dynamic> json) => ChartSource(
@@ -62,6 +73,8 @@ class ChartSource {
     fileName: json['file'] as String,
     url: json['url'] as String,
     category: json['category'] as String,
+    sha256: json['sha256'] as String?,
+    georefRevision: (json['georefRevision'] as num?)?.toInt(),
   );
 }
 

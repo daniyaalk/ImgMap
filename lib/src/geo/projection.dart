@@ -30,6 +30,10 @@ abstract class MapProjection {
 
   static const MapProjection webMercator = WebMercator();
 
+  /// Whether this app version can apply projection [id].
+  static bool isKnown(String id) =>
+      id == 'merc' || RegExp(r'^utm([1-9]|[1-5]\d|60)[ns]$').hasMatch(id);
+
   /// The projection for [id]; Web Mercator if unknown.
   static MapProjection fromId(String? id) {
     if (id == null || id == 'merc') return webMercator;

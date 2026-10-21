@@ -54,9 +54,30 @@ class LocationController extends ChangeNotifier {
     _listen(source);
   }
 
+  /// Sets a device fix directly, as GPS would; for tests.
+  @visibleForTesting
+  void debugSetPosition(Position position) {
+    _position = position;
+    _set(LocationStatus.tracking);
+  }
+
+  /// Stops listening while the app is in the background. The last fix is
+  /// dropped: shown later it would look current when it isn't.
+  void pause() {
+    if (_simulating) return;
+    _session++; // Abandon a start still waiting on permission.
+    _stopPositions();
+    _position = null;
+    _set(LocationStatus.starting);
+  }
+
+  /// Picks up again after [pause].
+  Future<void> resume() => _simulating ? Future.value() : start();
+
   /// Returns to the device GPS.
   Future<void> stopSimulation() {
     _simulating = false;
+    _stopPositions(); // End the simulated feed now, not after GPS restarts.
     _position = null;
     return start();
   }

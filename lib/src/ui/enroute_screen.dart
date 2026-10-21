@@ -12,6 +12,7 @@ import '../enroute/enroute_map.dart';
 import '../enroute/enroute_model.dart';
 import '../geo/coordinate_format.dart';
 import '../geo/lat_lng.dart';
+import '../location/app_location.dart';
 import '../location/location_controller.dart';
 import '../location/simulated_flight.dart';
 import 'country_picker.dart';
@@ -38,7 +39,7 @@ class EnrouteScreen extends StatefulWidget {
 
 class _EnrouteScreenState extends State<EnrouteScreen> {
   late final EnrouteLoader _loader = EnrouteLoader(widget.store.storage);
-  final LocationController _location = LocationController();
+  late final LocationController _location = AppLocation.of(context);
   // Country-wide until data arrives.
   late final EnrouteView _view = EnrouteView(
     EnrouteView.project(widget.source.mapCenter),
@@ -65,7 +66,6 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
   void initState() {
     super.initState();
     _location.addListener(_onLocation);
-    _location.start();
     WakelockPlus.enable().catchError((Object _) {});
     _open();
   }
@@ -76,7 +76,10 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
     WakelockPlus.disable().catchError((Object _) {});
     _cancel = true;
     _location.removeListener(_onLocation);
-    _location.dispose();
+    // Shared with the rest of the app: hand it back on real GPS.
+    // After the tree settles: other screens listen to it.
+    final location = _location;
+    if (location.simulating) Future.microtask(location.stopSimulation);
     _view.dispose();
     super.dispose();
   }
@@ -120,14 +123,7 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
       _progress = (0, 0);
     });
     try {
-      final data = await _loader.download(
-        widget.source,
-        edition,
-        onProgress: (done, total) {
-          if (mounted) setState(() => _progress = (done, total));
-        },
-        cancelled: () => _cancel,
-      );
+      final data = await _loader.download(widget.source, edition);
       if (!mounted) return;
       _data = null; // Refit to the new network.
       _show(data);
@@ -243,21 +239,15 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
     final progress = _progress;
     Widget body;
     if (progress != null) {
-      final (done, total) = progress;
       body = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            total == 0 ? 'Finding routes…' : 'Reading route $done of $total…',
+            'Downloading the airway map…',
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 16),
-          LinearProgressIndicator(value: total == 0 ? null : done / total),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => setState(() => _cancel = true),
-            child: const Text('Cancel'),
-          ),
+          const LinearProgressIndicator(),
         ],
       );
     } else if (_current == null && !_offline) {
@@ -282,8 +272,7 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Reads every published route, about a minute on a good '
-            'connection. Stored for offline use.',
+            'A small download, stored for offline use.',
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium,
           ),

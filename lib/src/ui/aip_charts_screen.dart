@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../aip/aip_source.dart';
 import '../aip/chart_importer.dart';
 import '../data/chart_store.dart';
+import '../geo/footprint.dart';
+import '../location/app_location.dart';
+import 'flight_widgets.dart' show gpsPosition;
 
 /// Lists an airport's charts in its AIP and imports the chosen ones.
 class AipChartsScreen extends StatefulWidget {
@@ -185,7 +188,11 @@ class _AipChartsScreenState extends State<AipChartsScreen> {
                 )
               : null,
         ),
-        body: _body(context),
+        // Rebuilt as the position changes, for the "covers you" marks.
+        body: ListenableBuilder(
+          listenable: AppLocation.of(context),
+          builder: (context, _) => _body(context),
+        ),
         bottomNavigationBar: _bottomBar(context),
       ),
     );
@@ -256,16 +263,11 @@ class _AipChartsScreenState extends State<AipChartsScreen> {
     }
 
     final now = DateTime.now().toUtc();
-    // Only charts that can become a moving map are offered: not tables,
-    // and not ones already tried that couldn't be georeferenced. Charts in
-    // the current import stay visible until it ends.
-    final unusable = _importer.unusableIn(widget.icao, _edition!);
+    // Only charts that can become a moving map are offered: the backend
+    // says which it could georeference. Charts in the current import stay
+    // visible until it ends.
     final visible = charts
-        .where(
-          (c) =>
-              (_progress?.containsKey(c.fileName) ?? false) ||
-              (c.category.isMap && !unusable.contains(c.fileName)),
-        )
+        .where((c) => (_progress?.containsKey(c.fileName) ?? false) || c.usable)
         .toList();
     final hidden = charts.length - visible.length;
     final byCategory = <ChartCategory, List<ChartRef>>{};
@@ -300,7 +302,7 @@ class _AipChartsScreenState extends State<AipChartsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
             child: Text(
               '$hidden chart${hidden == 1 ? ' is' : 's are'} hidden: tables, '
-              'or charts that couldn\'t be georeferenced automatically.',
+              'or charts that couldn\'t be georeferenced.',
               style: theme.textTheme.bodySmall,
             ),
           ),
@@ -361,11 +363,33 @@ class _AipChartsScreenState extends State<AipChartsScreen> {
               () =>
                   v! ? _selected.add(c.fileName) : _selected.remove(c.fileName),
             ),
-      title: Text(c.title),
+      title: Row(
+        children: [
+          Expanded(child: Text(c.title)),
+          if (_covers(c))
+            Tooltip(
+              message: 'Covers your position',
+              child: Icon(
+                Icons.my_location,
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+        ],
+      ),
       subtitle: status == null ? null : Text(status),
       secondary: _statusIcon(progress?.result, queued, have != null),
       dense: true,
     );
+  }
+
+  /// Whether the backend's footprint of [c] contains the GPS position.
+  bool _covers(ChartRef c) {
+    final here = gpsPosition(AppLocation.of(context));
+    final footprint = c.georef?.footprint;
+    return here != null &&
+        footprint != null &&
+        polygonContains(footprint, here);
   }
 
   Widget? _statusIcon(ImportResult? result, bool queued, bool have) {

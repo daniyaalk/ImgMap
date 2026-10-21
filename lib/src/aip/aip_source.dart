@@ -1,7 +1,8 @@
 import 'dart:typed_data';
+import 'dart:ui';
 
 import '../geo/lat_lng.dart';
-import 'aip_points.dart';
+import '../geo/projection.dart';
 
 /// One published edition (AIRAC amendment) of an AIP.
 class AipEdition {
@@ -9,7 +10,6 @@ class AipEdition {
     required this.id,
     required this.name,
     required this.effective,
-    required this.baseUrl,
   });
 
   /// Stable identifier, e.g. `2026-09`.
@@ -19,10 +19,13 @@ class AipEdition {
   final String name;
   final DateTime effective;
 
-  /// Root of the edition's files.
-  final Uri baseUrl;
-
   bool isEffectiveOn(DateTime day) => !effective.isAfter(day);
+
+  factory AipEdition.fromJson(Map<String, dynamic> j) => AipEdition(
+    id: j['id'] as String,
+    name: j['name'] as String,
+    effective: DateTime.parse('${j['effective']}T00:00:00Z'),
+  );
 }
 
 enum ChartCategory {
@@ -41,6 +44,98 @@ enum ChartCategory {
 
   /// Whether charts of this kind are drawn to a map scale at all.
   bool get isMap => this != tabular;
+
+  /// The category named [name], or null for one this version doesn't know.
+  static ChartCategory? byNameOrNull(String? name) {
+    for (final c in values) {
+      if (c.name == name) return c;
+    }
+    return null;
+  }
+}
+
+/// A chart's placement on the ground, worked out by the backend.
+///
+/// Positions are fractions of the displayed page, so they apply at
+/// whatever size the PDF is rendered.
+class ChartGeoref {
+  const ChartGeoref({
+    required this.revision,
+    required this.method,
+    required this.projectionId,
+    required this.conformal,
+    required this.accuracyMeters,
+    required this.estimated,
+    required this.points,
+    required this.footprint,
+    required this.notToScale,
+  });
+
+  /// Increases whenever the backend's placement of this chart changes.
+  final int revision;
+  final String method;
+  final String projectionId;
+  final bool conformal;
+  final double accuracyMeters;
+  final bool estimated;
+
+  /// (u, v) page fractions and the ground position there.
+  final List<({double u, double v, LatLng position})> points;
+
+  /// The page's corners on the ground.
+  final List<LatLng> footprint;
+
+  /// Areas marked NOT TO SCALE, as page fractions.
+  final List<Rect> notToScale;
+
+  /// Null if the entry uses anything this app version can't apply (a newer
+  /// projection, say): such a chart is treated as not georeferenced.
+  static ChartGeoref? fromJson(Map<String, dynamic>? j) {
+    if (j == null) return null;
+    try {
+      final projection = j['projection'] as String;
+      if (!MapProjection.isKnown(projection)) return null;
+      final points = [
+        for (final p in j['points'] as List)
+          (
+            u: ((p as Map)['u'] as num).toDouble(),
+            v: (p['v'] as num).toDouble(),
+            position: LatLng(
+              (p['lat'] as num).toDouble(),
+              (p['lon'] as num).toDouble(),
+            ),
+          ),
+      ];
+      if (points.length < 2) return null;
+      return ChartGeoref(
+        revision: (j['revision'] as num?)?.toInt() ?? 0,
+        method: j['method'] as String? ?? 'backend',
+        projectionId: projection,
+        conformal: j['conformal'] == true,
+        accuracyMeters: (j['accuracyM'] as num?)?.toDouble() ?? 0,
+        estimated: j['estimated'] == true,
+        points: points,
+        footprint: [
+          for (final c in j['footprint'] as List? ?? const [])
+            LatLng(
+              ((c as List)[0] as num).toDouble(),
+              (c[1] as num).toDouble(),
+            ),
+        ],
+        notToScale: [
+          for (final r in j['notToScale'] as List? ?? const [])
+            Rect.fromLTRB(
+              ((r as List)[0] as num).toDouble(),
+              (r[1] as num).toDouble(),
+              (r[2] as num).toDouble(),
+              (r[3] as num).toDouble(),
+            ),
+        ],
+      );
+    } on Object {
+      return null; // Malformed: unusable rather than wrong.
+    }
+  }
 }
 
 /// A chart listed in an AIP, before it is downloaded.
@@ -50,8 +145,12 @@ class ChartRef {
     required this.fileName,
     required this.title,
     required this.category,
-    required this.url,
     required this.edition,
+    this.pdfPath,
+    this.sha256,
+    this.bytes,
+    this.georef,
+    this.unusableReason,
   });
 
   final String icao;
@@ -60,14 +159,21 @@ class ChartRef {
   final String fileName;
   final String title;
   final ChartCategory category;
-  final Uri url;
   final AipEdition edition;
+
+  /// The mirrored PDF, relative to the backend.
+  final String? pdfPath;
+  final String? sha256;
+  final int? bytes;
+
+  /// Null when the chart can't be used as a moving map.
+  final ChartGeoref? georef;
+  final String? unusableReason;
+
+  bool get usable => georef != null && pdfPath != null && category.isMap;
 }
 
-/// A country's (or publication format's) AIP.
-///
-/// To support another state, implement this, usually by extending
-/// [EurocontrolEaipSource], and register it in [AipRegistry].
+/// A country's AIP, as published by the backend.
 abstract class AipSource {
   /// Stable id stored with imported charts, e.g. `in-aai`.
   String get id;
@@ -87,23 +193,16 @@ abstract class AipSource {
   /// Whether this source publishes charts for [icao].
   bool covers(String icao);
 
-  /// Published editions, newest first. Usually the current one and, near
-  /// an AIRAC date, the next.
+  /// Published editions, newest first.
   Future<List<AipEdition>> editions();
 
   Future<List<ChartRef>> charts(String icao, AipEdition edition);
 
+  /// The chart's PDF, checked against its published hash.
   Future<Uint8List> download(ChartRef chart);
 
-  /// Waypoints, navaids and reference points that [icao]'s charts may
-  /// show, with their published positions.
-  Future<PointDirectory> points(String icao, AipEdition edition);
-
-  /// Names of the pages describing ATS routes (ENR 3.x).
-  Future<List<String>> routePages(AipEdition edition);
-
-  /// The HTML of one page of [edition].
-  Future<String> page(AipEdition edition, String name);
+  /// The airway network in EnrouteData JSON form.
+  Future<Map<String, dynamic>> enroute(AipEdition edition);
 }
 
 /// The edition in force on [day], or null if none is yet.

@@ -9,6 +9,7 @@ import '../data/chart_store.dart';
 import '../data/models.dart';
 import '../geo/georeference.dart';
 import '../geo/lat_lng.dart';
+import '../location/app_location.dart';
 import '../location/location_controller.dart';
 import '../location/simulated_flight.dart';
 import 'chart_viewport.dart';
@@ -29,7 +30,7 @@ class _MovingMapScreenState extends State<MovingMapScreen> {
   late final ChartViewController _view = ChartViewController(
     widget.chart.imageSize,
   );
-  final LocationController _location = LocationController();
+  late final LocationController _location = AppLocation.of(context);
   bool _follow = true;
   bool _notToScaleDismissed = false;
 
@@ -37,7 +38,6 @@ class _MovingMapScreenState extends State<MovingMapScreen> {
   void initState() {
     super.initState();
     _location.addListener(_onLocation);
-    _location.start();
     WakelockPlus.enable().catchError((Object _) {});
   }
 
@@ -46,7 +46,10 @@ class _MovingMapScreenState extends State<MovingMapScreen> {
     _setImmersive(false);
     WakelockPlus.disable().catchError((Object _) {});
     _location.removeListener(_onLocation);
-    _location.dispose();
+    // Shared with the rest of the app: hand it back on real GPS.
+    // After the tree settles: other screens listen to it.
+    final location = _location;
+    if (location.simulating) Future.microtask(location.stopSimulation);
     _view.dispose();
     super.dispose();
   }

@@ -6,7 +6,10 @@ import '../aip/aip_registry.dart';
 import '../data/chart_store.dart';
 import '../data/models.dart';
 import 'charts_screen.dart';
+import '../location/app_location.dart';
+import '../location/location_controller.dart';
 import 'country_picker.dart';
+import 'flight_widgets.dart';
 
 class AirportsScreen extends StatelessWidget {
   const AirportsScreen({
@@ -24,13 +27,18 @@ class AirportsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Airports'),
         actions: [
+          const _GpsIndicator(),
           // Airway maps come from the AIP sources this build can reach.
-          if (!kIsWeb && registry.sources.isNotEmpty)
-            IconButton(
-              tooltip: 'En-route map',
-              icon: const Icon(Icons.route),
-              onPressed: () => openEnrouteMap(context, store, registry),
-            ),
+          ListenableBuilder(
+            listenable: registry,
+            builder: (context, _) => registry.sources.isEmpty
+                ? const SizedBox.shrink()
+                : IconButton(
+                    tooltip: 'En-route map',
+                    icon: const Icon(Icons.route),
+                    onPressed: () => openEnrouteMap(context, store, registry),
+                  ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -295,3 +303,60 @@ class _EmptyState extends StatelessWidget {
 /// Shared with the charts list.
 Widget emptyState(IconData icon, String message, {Widget? action}) =>
     _EmptyState(icon: icon, message: message, action: action);
+
+/// The shared GPS session's state; tap for details and a fix when it needs
+/// the user (permission, location services).
+class _GpsIndicator extends StatelessWidget {
+  const _GpsIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    final location = AppLocation.of(context);
+    return ListenableBuilder(
+      listenable: location,
+      builder: (context, _) {
+        final scheme = Theme.of(context).colorScheme;
+        final (icon, color, tooltip) = switch (location.status) {
+          LocationStatus.tracking => (
+            Icons.gps_fixed,
+            scheme.primary,
+            'GPS fixed',
+          ),
+          LocationStatus.starting || LocationStatus.waitingForFix => (
+            Icons.gps_not_fixed,
+            scheme.onSurfaceVariant,
+            'Finding GPS position',
+          ),
+          _ => (Icons.gps_off, scheme.error, 'GPS unavailable'),
+        };
+        return IconButton(
+          tooltip: tooltip,
+          icon: Icon(icon, color: color),
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(tooltip),
+              content: ListenableBuilder(
+                listenable: location,
+                builder: (context, _) =>
+                    location.status == LocationStatus.tracking
+                    ? Text(
+                        'Accurate to about '
+                        '${location.position?.accuracy.round() ?? '?'} m. '
+                        'Charts open with your position already fixed.',
+                      )
+                    : LocationBanner(location: location),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

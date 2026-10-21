@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../aip/aip_registry.dart';
+import '../geo/footprint.dart';
+import '../location/app_location.dart';
+import 'flight_widgets.dart' show PositionBadge, gpsPosition;
 import '../aip/aip_source.dart';
-import '../aip/chart_importer.dart' show formatAccuracy;
+import '../aip/chart_importer.dart' show ChartImporter, formatAccuracy;
 import '../data/chart_store.dart';
 import '../data/models.dart';
 import 'aip_charts_screen.dart';
@@ -41,8 +44,29 @@ class _ChartsScreenState extends State<ChartsScreen> {
   @override
   void initState() {
     super.initState();
+    _refreshGeoreferences();
     if (widget.openAip && _aip != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _openAip());
+    }
+  }
+
+  /// Picks up better georeferencing the backend has published since
+  /// these charts were imported.
+  Future<void> _refreshGeoreferences() async {
+    final aip = _aip;
+    if (aip == null) return;
+    try {
+      final n = await ChartImporter(
+        store,
+        aip,
+      ).refreshGeoreferences(widget.icao);
+      if (n > 0) {
+        _snack(
+          'Improved georeferencing applied to $n chart${n == 1 ? '' : 's'}.',
+        );
+      }
+    } on Object {
+      // Offline: the charts as stored are still good.
     }
   }
 
@@ -87,10 +111,11 @@ class _ChartsScreenState extends State<ChartsScreen> {
         label: const Text('Add chart'),
       ),
       body: ListenableBuilder(
-        listenable: store,
+        listenable: Listenable.merge([store, AppLocation.of(context)]),
         builder: (context, _) {
           // Only charts that work as a moving map are listed.
           final charts = store.usableChartsFor(widget.icao);
+          final here = gpsPosition(AppLocation.of(context));
           if (charts.isEmpty) {
             return emptyState(
               Icons.map_outlined,
@@ -109,11 +134,29 @@ class _ChartsScreenState extends State<ChartsScreen> {
                     ),
             );
           }
-          return ListView.builder(
+          // Charts covering the current position first: the ones you
+          // most likely want right now.
+          final covering = <ChartRecord>[], others = <ChartRecord>[];
+          for (final c in charts) {
+            final footprint = chartFootprint(c);
+            (here != null &&
+                        footprint != null &&
+                        polygonContains(footprint, here)
+                    ? covering
+                    : others)
+                .add(c);
+          }
+          return ListView(
             padding: const EdgeInsets.only(bottom: 88),
-            itemCount: charts.length,
-            itemBuilder: (context, i) =>
-                _ChartTile(store: store, chart: charts[i]),
+            children: [
+              if (covering.isNotEmpty) ...[
+                const _SectionHeader('Covers your position'),
+                for (final c in covering)
+                  _ChartTile(store: store, chart: c, coversPosition: true),
+                const _SectionHeader('Other charts'),
+              ],
+              for (final c in others) _ChartTile(store: store, chart: c),
+            ],
           );
         },
       ),
@@ -196,11 +239,29 @@ class _ChartsScreenState extends State<ChartsScreen> {
   }
 }
 
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+    child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+  );
+}
+
 class _ChartTile extends StatelessWidget {
-  const _ChartTile({required this.store, required this.chart});
+  const _ChartTile({
+    required this.store,
+    required this.chart,
+    this.coversPosition = false,
+  });
 
   final ChartStore store;
   final ChartRecord chart;
+
+  /// The current GPS fix lies on this chart.
+  final bool coversPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -220,27 +281,43 @@ class _ChartTile extends StatelessWidget {
           '${chart.controlPoints.length} points · '
           '±${rms.toStringAsFixed(0)} m';
     }
-    return ListTile(
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(4),
-        child: Image(
-          image: ResizeImage(
-            store.imageFor(chart.imageFile),
-            width: 96,
-            policy: ResizeImagePolicy.fit,
-          ),
+    final thumbnail = ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Image(
+        image: ResizeImage(
+          store.imageFor(chart.imageFile),
+          width: 96,
+          policy: ResizeImagePolicy.fit,
+        ),
+        width: 48,
+        height: 48,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => const SizedBox(
           width: 48,
           height: 48,
-          fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const SizedBox(
-            width: 48,
-            height: 48,
-            child: Icon(Icons.broken_image),
-          ),
+          child: Icon(Icons.broken_image),
         ),
       ),
+    );
+    return ListTile(
+      leading: coversPosition ? PositionBadge(child: thumbnail) : thumbnail,
       title: Text(chart.name),
-      subtitle: Text(status),
+      subtitle: coversPosition
+          ? Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'Your position is on this chart\n',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  TextSpan(text: status),
+                ],
+              ),
+            )
+          : Text(status),
       trailing: PopupMenuButton<String>(
         onSelected: (v) async {
           if (v == 'edit') {

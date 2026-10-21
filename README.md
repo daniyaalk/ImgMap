@@ -22,71 +22,55 @@ scans, and shows the error at each point so a mistyped coordinate stands out.
 
 ## Charts from the AIP
 
-For Indian airports (ICAO codes starting VA, VE, VI or VO), the app can
-fetch charts straight from AIP India (aim-india.aai.aero). Add the airport
-and the chart list opens. The edition in force is chosen by AIRAC date, and
-the next one can be picked once it's published. Imported charts are tagged
-with their edition, and importing a newer edition replaces them.
+AIP charts come from the **ImgMap backend** (the `imgmap-backend`
+repository), never from the eAIP directly. The backend reads each country's
+eAIP once per AIRAC cycle, mirrors the chart PDFs, georeferences them, and
+publishes everything as static files. However many people use the app, the
+eAIP sees one visitor.
 
-Each chart is rendered from its PDF and georeferenced automatically where
-possible:
-
-- **Grid labels** (e.g. `28°50'0"N` on the frame). The labels are fitted
-  in both Mercator and UTM, and the projection that explains them best is
-  kept. Stray labels are dropped, every label must be predicted by the
-  others, and the result is checked against the chart's printed scale. On
-  AAI's ILS and STAR charts this gives about ±15 m.
-- **One meridian and one parallel plus the scale bar**, as most AAI SIDs
-  and many STARs have. Position and rotation come from the grid lines, and
-  scale from the bar, which must match the printed `1:N`. This can't check
-  itself, so the app shows an estimated accuracy (about 1% of the distance
-  across the chart).
-- **Named fixes.** Waypoint and navaid names on the chart are matched to
-  coordinates published in the eAIP (ENR 4.4 significant points, ENR 4.1
-  navaids, the aerodrome's AD 2 page). Each label is paired with its symbol,
-  read from the PDF's vector shapes. A consensus search (RANSAC) throws out
-  wrong matches, and fixes displaced behind NOT TO SCALE breaks. Each fix
-  is then looked for where its published position predicts, and the chart
-  is fitted as a conformal (scale and rotation only) map in UTM. Fixes
-  confirm a full grid, and the chart is refused if they disagree. They
-  replace a one-line grid estimate, or georeference a chart with no grid.
-  On AAI's SIDs and STARs this gives about ±5–25 m.
-- **Parts marked NOT TO SCALE**, such as a shortened leg behind a break
-  symbol or an enlarged inset, are allowed when the frame has a full
-  coordinate grid. The marked places are outlined on the moving map, with a
-  warning that fixes there aren't at their true positions. With only one
-  grid line each way, a chart with such marks is refused.
-- Anything else (charts with no grid, charts whose text was turned into
-  outlines, tables and coding pages) isn't imported. Charts that fail are remembered for that edition and hidden from
-  the AIP list, so only charts that work as a moving map are offered.
+- **Getting charts.** Add an airport (for India, ICAO codes starting VA, VE,
+  VI or VO) and the chart list opens for the edition in force. Only charts
+  the backend could georeference are offered. Each one downloads (checked
+  against its published hash), is rendered on the device, and gets the
+  backend's control points.
+- **Improvements arrive by themselves.** The backend publishes a revision
+  number with each chart's georeferencing. When it improves a chart, the
+  app picks up the new points the next time that airport's chart list
+  opens. Points you placed or edited by hand are never replaced.
+- **"You're here".** Charts whose area contains your current GPS fix are
+  marked with a location badge and listed first, both among your charts and
+  in the AIP chart list. A simulated flight doesn't count.
+- **Countries come from the backend** (`v1/countries.json`, cached for
+  offline use). A country added there appears in the app without a
+  release. See the backend's README for how georeferencing works and how
+  to add a country.
 
 Always open an automatically georeferenced chart and check that its markers
-sit on the grid lines before relying on it.
+sit on the grid lines or fix symbols before relying on it.
 
-### Countries
+### Pointing the app at a backend
 
-Each country is one `EaipCountry` entry in `lib/src/aip/countries/`, listed
-in `lib/src/aip/aip_countries.dart`. An entry holds:
+The backend's address is set at build time:
 
-- the country's name, ISO code and publishing authority;
-- its ICAO prefixes (`VA`, `VE`, `VI`, `VO`), which decide which airports'
-  charts come from it;
-- where editions are announced, and how to read their effective dates;
-- its eAIP page naming (`IN-` prefix, `en-GB`) and chart file conventions.
+```sh
+flutter build apk --dart-define=IMGMAP_BACKEND=https://data.example.com/
+```
 
-For a Eurocontrol-style eAIP, nothing else needs code. The en-route map
-asks which country to show (once, then remembers), and can be switched
-from the map. Each country's network is cached separately. AIP
-fetching isn't available in the web build, because AIP sites don't allow
-cross-origin requests.
+For development, serve a local pipeline run over USB. Debug builds allow
+plain HTTP to `localhost` only:
+
+```sh
+python3 -m http.server 8766 --directory ../imgmap-backend/out
+adb reverse tcp:8766 tcp:8766
+flutter run --dart-define=IMGMAP_BACKEND=http://localhost:8766/
+```
 
 ## En-route map
 
 The route button on the airports screen opens an airway map for the chosen
-country, built directly from its AIP route tables (ENR 3.x), with no chart download or
-georeferencing. For India that's 525 routes, 931 points and 2,161 segments.
-The first download takes about a minute; after that it's cached (about
-300 KB) and works offline.
+country, built by the backend from its AIP route tables (ENR 3.x). For
+India that's 525 routes, 931 points and 2,161 segments. It's a single small
+download (about 300 KB), cached for offline use.
 
 - Routes are coloured by type (conventional or RNAV). Navaids, compulsory
   and on-request points have their own symbols, and labels thin out as you
@@ -98,8 +82,7 @@ The first download takes about a minute; after that it's cached (about
   flight along a route.
 - **Self-checking.** Every segment's published length and track is
   compared with its coordinates; mismatches are drawn dashed red and
-  explained when tapped. Amended text (the old value in `<del>`) is
-  ignored, so an amended position is never mixed with its predecessor.
+  explained when tapped.
 - When a newer AIRAC edition comes into force, the map says so and offers
   an update.
 
@@ -123,25 +106,12 @@ flutter test       # geo math, coordinate parsing, storage, full UI flow
 flutter analyze
 ```
 
-Two opt-in tests use real AIP charts. These aren't stored in the repo,
-because they're copyrighted. `libpdfium.so` for the host comes from
-[pdfium-binaries](https://github.com/bblanchon/pdfium-binaries) (the
-release pdfrx uses).
-
-```sh
-# Auto-georeference a folder of chart PDFs and print the results
-IMGMAP_CHART_DIR=~/charts IMGMAP_PDFIUM=~/pdfium/lib/libpdfium.so \
-  flutter test test/real_charts_test.dart
-# Import a few charts for an airport from the live site
-IMGMAP_LIVE=VIDP IMGMAP_PDFIUM=~/pdfium/lib/libpdfium.so \
-  flutter test test/live_import_test.dart
-```
+Georeferencing and eAIP parsing are tested in the backend repository.
 
 | Path | What |
 |---|---|
-| `lib/src/aip/` | AIP sources (India), chart listing, download and import |
-| `lib/src/pdf/` | PDF rendering and text extraction |
-| `lib/src/georef/` | Automatic georeferencing from grid labels and scale bars |
+| `lib/src/aip/` | Backend client, chart listing, download and import |
+| `lib/src/pdf/` | PDF rendering |
 | `lib/src/geo/` | Projections (Mercator, UTM), control-point fitting, coordinates |
 | `lib/src/data/` | Chart library; file storage on native, memory on web |
 | `lib/src/location/` | GPS permission/stream handling and the flight simulator |

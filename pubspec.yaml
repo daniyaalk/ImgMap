@@ -42,11 +42,7 @@ dependencies:
   wakelock_plus: ^1.8.0
   pdfrx: ^2.9.0
   http: ^1.6.0
-  html: ^0.15.7
   crypto: ^3.0.7
-  pdfium_dart: ^0.4.0
-  ffi: ^2.2.0
-
 dev_dependencies:
   flutter_test:
     sdk: flutter

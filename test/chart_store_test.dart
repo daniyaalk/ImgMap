@@ -94,18 +94,4 @@ void main() {
     expect(store.chartsFor('VIDP'), hasLength(2));
     expect(store.usableChartsFor('VIDP').map((c) => c.id), [good.id]);
   });
-
-  test('remembers charts that could not be georeferenced', () async {
-    var store = await ChartStore.open(storage: FileChartStorage(dir));
-    await store.addAirport(const Airport(icao: 'VIDP'));
-    await store.markUnusable('in-aai', 'VIDP', '2026-09', 'VIDP-ADC.pdf');
-
-    store = await ChartStore.open(storage: FileChartStorage(dir));
-    expect(store.unusableCharts('in-aai', 'VIDP', '2026-09'), {'VIDP-ADC.pdf'});
-    // A new edition is tried afresh.
-    expect(store.unusableCharts('in-aai', 'VIDP', '2026-10'), isEmpty);
-
-    await store.deleteAirport('VIDP');
-    expect(store.unusableCharts('in-aai', 'VIDP', '2026-09'), isEmpty);
-  });
 }

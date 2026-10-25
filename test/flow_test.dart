@@ -45,6 +45,8 @@ void main() {
     }
 
     // First launch: the disclaimer comes first.
+    expect(find.textContaining('Not a government app'), findsOneWidget);
+    await tester.scrollUntilVisible(find.byType(Checkbox), 200);
     await tester.tap(find.byType(Checkbox));
     await tester.pump();
     await tester.tap(find.text('Continue'));

@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Bump to show the disclaimer again to everyone, e.g. after changing it.
-const disclaimerVersion = 1;
+const disclaimerVersion = 2;
 
 const contactEmail = 'me@daniyaalkhan.com';
 final _appRepo = Uri.parse('https://github.com/daniyaalk/ImgMap');
 final _backendRepo = Uri.parse('https://github.com/daniyaalk/imgmap-backend');
+final _aipIndia = Uri.parse('https://aim-india.aai.aero/');
 
 /// Shown before the app can be used, until accepted; [onAccept] is called
 /// when the user confirms.
@@ -150,6 +151,17 @@ class DisclaimerText extends StatelessWidget {
           linkTo('the app', _appRepo),
           const TextSpan(text: ' or '),
           linkTo('the chart pipeline', _backendRepo),
+          const TextSpan(text: '.'),
+        ]),
+        point(4, 'Not a government app.', [
+          const TextSpan(
+            text:
+                'AIPChart is independent and does not represent, and is not '
+                'affiliated with, any government or aviation authority. Its '
+                'charts and data come from each country\'s official '
+                'Aeronautical Information Publication: for India, ',
+          ),
+          linkTo('AIP India (Airports Authority of India)', _aipIndia),
           const TextSpan(text: '.'),
         ]),
       ],

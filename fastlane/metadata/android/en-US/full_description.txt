@@ -2,10 +2,17 @@ AIPChart puts your position on published aviation charts. It's made for aviation
 
 <b>Not for navigation.</b> AIPChart is a hobby project. Never use it to navigate or to plan a real flight. Charts are placed on the map by an automated, AI-assisted pipeline and may be wrong. Always use official, current charts and certified equipment.
 
+<b>Not a government app.</b> AIPChart is an independent project. It does not represent, and is not affiliated with or endorsed by, the Airports Authority of India or any other government entity or aviation authority.
+
+<b>Source of the information</b>
+All charts, airways, fixes and airspace in the app come from the official Aeronautical Information Publication (AIP), published by each country's aviation authority:
+• India: AIP India (eAIP), published by the Airports Authority of India: https://aim-india.aai.aero/
+Always check the official source for the current, authoritative version.
+
 <b>Charts from the AIP</b>
 • Browse the charts an airport publishes in its country's Aeronautical Information Publication (AIP): aerodrome and ground movement charts, departures (SIDs), arrivals (STARs), approaches, and obstacle charts.
 • Charts are downloaded from our own mirror, so the app never puts load on the authority's website.
-• India (AAI) is available now. More countries can be added without an app update.
+• India (AIP India, Airports Authority of India) is available now. More countries can be added without an app update.
 
 <b>See where you are</b>
 • Charts are georeferenced automatically, so your GPS position appears on them as a moving marker.
@@ -14,6 +21,7 @@ AIPChart puts your position on published aviation charts. It's made for aviation
 
 <b>En-route map</b>
 • A map of the published airways and fixes, with search.
+• See which airspace you're in (FIR, control area, TMA or control zone), its boundary and levels, and the frequencies to call.
 • Simulate a flight along any route to see how it looks.
 
 <b>Your own charts</b>

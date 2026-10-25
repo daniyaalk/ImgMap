@@ -68,6 +68,64 @@ Map<String, dynamic> enrouteJson({String source = 'in-aai'}) => {
       'future': 'ignored',
     },
   ],
+  // Two sectors stacked over the routes, inside a FIR whose drawn boundary
+  // (it follows a border) stops short of them.
+  'airspaces': [
+    {
+      'n': 'Delhi FIR',
+      'k': 'fir',
+      'rings': [
+        [
+          [25.0, 70.9],
+          [27.0, 82.0],
+          [25.0, 79.0],
+        ],
+      ],
+      'approx': true,
+      'u': 'UNL',
+      'l': 'GND',
+      'lft': 0,
+      'units': [
+        {
+          'n': 'Delhi Radio (MWARA)',
+          'cs': 'Delhi Radio',
+          'h': 'H24',
+          'f': [10018, 3467],
+        },
+      ],
+    },
+    for (final (name, lower, upper, freqs) in [
+      ('Delhi- LDP4', 15500, 25500, [124550, 134075]),
+      ('Delhi- UDP4', 25500, 46000, [132975]),
+    ])
+      {
+        'n': name,
+        'k': 'cta',
+        'rings': [
+          [
+            [29.0, 76.0],
+            [29.0, 77.5],
+            [27.0, 77.5],
+            [27.0, 76.0],
+          ],
+        ],
+        'u': 'FL ${upper ~/ 100}',
+        'uft': upper,
+        'l': 'FL ${lower ~/ 100}',
+        'lft': lower,
+        'cls': 'D',
+        'units': [
+          {
+            'n': 'Delhi ACC',
+            'cs': 'Delhi Control/Delhi Radar (RSR)',
+            'h': 'H24',
+            'f': freqs,
+          },
+        ],
+      },
+    // A kind from a newer backend: skipped.
+    {'n': 'Somewhere', 'k': 'future', 'units': []},
+  ],
   'unread': <String>[],
 };
 

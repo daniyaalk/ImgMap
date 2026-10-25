@@ -110,6 +110,7 @@ class EnrouteMap extends StatefulWidget {
     required this.data,
     required this.view,
     this.selected,
+    this.airspace,
     this.overlay,
     this.onTap,
     this.onUserInteraction,
@@ -120,6 +121,9 @@ class EnrouteMap extends StatefulWidget {
 
   /// A route to highlight.
   final AirRoute? selected;
+
+  /// An airspace to outline: the one the aircraft is in.
+  final Airspace? airspace;
 
   /// Drawn above the network (the aircraft), in screen space.
   final void Function(Canvas canvas, EnrouteView view)? overlay;
@@ -213,6 +217,7 @@ class _EnrouteMapState extends State<EnrouteMap> {
                 merc: _merc,
                 view: view,
                 selected: widget.selected,
+                airspace: widget.airspace,
                 overlay: widget.overlay,
                 scheme: Theme.of(context).colorScheme,
               ),
@@ -238,6 +243,7 @@ class _NetworkPainter extends CustomPainter {
     required this.merc,
     required this.view,
     required this.selected,
+    required this.airspace,
     required this.overlay,
     required this.scheme,
   }) : super(repaint: view);
@@ -246,6 +252,7 @@ class _NetworkPainter extends CustomPainter {
   final Map<EnroutePoint, Offset> merc;
   final EnrouteView view;
   final AirRoute? selected;
+  final Airspace? airspace;
   final void Function(Canvas, EnrouteView)? overlay;
   final ColorScheme scheme;
 
@@ -255,6 +262,7 @@ class _NetworkPainter extends CustomPainter {
   static const _rnav = Color(0xFF14917F);
   static const _suspect = Color(0xFFD32F2F);
   static const _highlight = Color(0xFFFFB300);
+  static const _airspace = Color(0xFF8E24AA);
 
   TextPainter _text(String s, {required bool dark, bool bold = false}) {
     final key = '$s|$dark|$bold';
@@ -301,6 +309,8 @@ class _NetworkPainter extends CustomPainter {
 
     bool onScreen(Offset a, Offset b) =>
         visible.overlaps(Rect.fromPoints(a, b));
+
+    if (airspace case final a?) _airspaceOutline(canvas, a);
 
     // Selected route underneath, wide.
     if (selected != null) {
@@ -395,6 +405,65 @@ class _NetworkPainter extends CustomPainter {
     overlay?.call(canvas, view);
   }
 
+  /// Tinted inside, with a dashed edge where the boundary is approximate.
+  void _airspaceOutline(Canvas canvas, Airspace a) {
+    final path = Path()..fillType = PathFillType.evenOdd;
+    final rings = [
+      for (final r in a.rings)
+        [for (final p in r) view.toScreen(EnrouteView.project(p))],
+    ];
+    for (final r in rings) {
+      path.addPolygon(r, true);
+    }
+    canvas.drawPath(path, Paint()..color = _airspace.withValues(alpha: 0.06));
+    final edge = Paint()
+      ..color = _airspace.withValues(alpha: 0.7)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    if (!a.approximate) {
+      canvas.drawPath(path, edge);
+      return;
+    }
+    final screen = Offset.zero & view.viewport;
+    for (final r in rings) {
+      for (var i = 0; i < r.length; i++) {
+        // Clipped first: zoomed in, an edge can run far off screen.
+        if (_clip(r[i], r[(i + 1) % r.length], screen) case (
+          final a,
+          final b,
+        )) {
+          _dashed(canvas, a, b, edge);
+        }
+      }
+    }
+  }
+
+  /// The part of a–b inside [r] (Liang–Barsky), or null.
+  static (Offset, Offset)? _clip(Offset a, Offset b, Rect r) {
+    final d = b - a;
+    var t0 = 0.0, t1 = 1.0;
+    for (final (p, q) in [
+      (-d.dx, a.dx - r.left),
+      (d.dx, r.right - a.dx),
+      (-d.dy, a.dy - r.top),
+      (d.dy, r.bottom - a.dy),
+    ]) {
+      if (p == 0) {
+        if (q < 0) return null;
+        continue;
+      }
+      final t = q / p;
+      if (p < 0) {
+        if (t > t1) return null;
+        t0 = math.max(t0, t);
+      } else {
+        if (t < t0) return null;
+        t1 = math.min(t1, t);
+      }
+    }
+    return (a + d * t0, a + d * t1);
+  }
+
   void _scaleBar(Canvas canvas, Size size, bool dark) {
     final nmPx = view.nmPerPixel;
     // The largest round distance under ~120 px.
@@ -438,6 +507,7 @@ class _NetworkPainter extends CustomPainter {
   bool shouldRepaint(_NetworkPainter old) =>
       old.data != data ||
       old.selected != selected ||
+      old.airspace != airspace ||
       old.scheme != scheme ||
       old.overlay != overlay;
 }

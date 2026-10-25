@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import '../geo/lat_lng.dart';
+import 'airspace.dart';
+
+export 'airspace.dart';
 
 enum PointKind { navaid, waypoint }
 
@@ -146,12 +149,17 @@ class EnrouteData {
     required this.editionName,
     required this.points,
     required this.routes,
+    this.airspaces = const [],
     this.unreadPages = const [],
   });
 
   final String sourceId, editionId, editionName;
   final List<EnroutePoint> points;
   final List<AirRoute> routes;
+
+  /// FIRs, control areas, TMAs and control zones, with their frequencies.
+  /// Empty in data built before the backend published airspace.
+  final List<Airspace> airspaces;
 
   /// Route pages that couldn't be fetched or parsed.
   final List<String> unreadPages;
@@ -206,6 +214,7 @@ class EnrouteData {
             'seg': [for (final s in r.segments) s.toJson(index)],
           },
       ],
+      'airspaces': [for (final a in airspaces) a.toJson()],
       'unread': unreadPages,
     };
   }
@@ -230,6 +239,10 @@ class EnrouteData {
                 RouteSegment.fromJson(s as Map<String, dynamic>, points),
             ],
           ),
+      ],
+      airspaces: [
+        for (final a in j['airspaces'] as List? ?? [])
+          ?Airspace.fromJson(a as Map<String, dynamic>),
       ],
       unreadPages: [for (final u in j['unread'] as List? ?? []) u as String],
     );

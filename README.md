@@ -70,9 +70,10 @@ flutter run --dart-define=IMGMAP_BACKEND=http://localhost:8766/
 ## En-route map
 
 The route button on the airports screen opens an airway map for the chosen
-country, built by the backend from its AIP route tables (ENR 3.x). For
-India that's 525 routes, 931 points and 2,161 segments. It's a single small
-download (about 300 KB), cached for offline use.
+country, built by the backend from its AIP route tables (ENR 3.x) and
+airspace (ENR 2.1). For India that's 525 routes, 931 points, 2,161 segments
+and 181 airspaces. It's a single small download (about 450 KB), cached for
+offline use.
 
 - Routes are coloured by type (conventional or RNAV). Navaids, compulsory
   and on-request points have their own symbols, and labels thin out as you
@@ -82,6 +83,12 @@ download (about 300 KB), cached for offline use.
   routes.
 - Your position is shown with follow mode. The plane button simulates a
   flight along a route.
+- **Airspace and frequencies.** A card shows the sector you're in at your
+  GPS altitude (or at the map centre, without a position), its boundary
+  outlined, and who to call: the frequencies first, then the call sign.
+  Tap it for every FIR, control area, TMA and control zone at that point,
+  with all their units and frequencies, and those above or below you.
+  Boundaries that follow a border are approximate and say so.
 - **Self-checking.** Every segment's published length and track is
   compared with its coordinates; mismatches are drawn dashed red and
   explained when tapped.

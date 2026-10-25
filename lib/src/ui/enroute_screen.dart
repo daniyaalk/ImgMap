@@ -62,6 +62,9 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
   bool _immersive = false;
   bool _issuesDismissed = false;
 
+  /// Downloaded again this session for airspace; don't offer it twice.
+  bool _airspaceRequested = false;
+
   @override
   void initState() {
     super.initState();
@@ -118,6 +121,7 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
     final edition = _current;
     if (edition == null) return;
     setState(() {
+      _airspaceRequested = true;
       _error = null;
       _cancel = false;
       _progress = (0, 0);
@@ -419,6 +423,15 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
           onAction: _progress == null ? _download : null,
           warning: true,
         ),
+      if (data.airspaces.isEmpty &&
+          !_airspaceRequested &&
+          _current != null &&
+          _current!.id == data.editionId)
+        _Notice(
+          'Airspace and ATC frequencies are now available for this map.',
+          action: _progress == null ? 'Download' : 'Downloading…',
+          onAction: _progress == null ? _download : null,
+        ),
       if (data.issues.isNotEmpty && !_issuesDismissed)
         _Notice(
           '${data.issues.length} route segment'
@@ -431,14 +444,38 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
     return Stack(
       children: [
         ListenableBuilder(
-          listenable: _location,
+          listenable: Listenable.merge([_location, _view]),
           builder: (context, _) => EnrouteMap(
             data: data,
             view: _view,
             selected: _selected,
+            airspace: _airspaceHere(data)?.primary,
             onUserInteraction: () => _setFollow(false),
             onTap: (hit) => _onTap(context, data, hit),
             overlay: _paintOwnship,
+          ),
+        ),
+        Positioned(
+          left: 12,
+          // Clear of the follow button.
+          right: 72,
+          bottom: 40,
+          child: SafeArea(
+            top: false,
+            child: ListenableBuilder(
+              listenable: Listenable.merge([_location, _view]),
+              builder: (context, _) {
+                final query = _airspaceHere(data);
+                if (query == null || query.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return _AirspaceCard(
+                  query: query,
+                  atMapCentre: _location.position == null,
+                  onTap: () => _showAirspace(context, query),
+                );
+              },
+            ),
           ),
         ),
         Positioned(
@@ -456,6 +493,30 @@ class _EnrouteScreenState extends State<EnrouteScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// The airspace at the aircraft, or at the map centre without a
+  /// position.
+  AirspaceQuery? _airspaceHere(EnrouteData data) {
+    if (data.airspaces.isEmpty) return null;
+    final p = _location.position;
+    if (p == null) return AirspaceQuery(data.airspaces, _view.center);
+    return AirspaceQuery(
+      data.airspaces,
+      LatLng(p.latitude, p.longitude),
+      // Without a vertical fix, every level is shown as current.
+      altitudeFt: p.altitudeAccuracy > 0 ? p.altitude * 3.28084 : null,
+    );
+  }
+
+  void _showAirspace(BuildContext context, AirspaceQuery query) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) =>
+          _AirspaceSheet(query: query, atMapCentre: _location.position == null),
     );
   }
 
@@ -643,6 +704,205 @@ class _Notice extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The airspace the aircraft is in and who to call, over the map.
+class _AirspaceCard extends StatelessWidget {
+  const _AirspaceCard({
+    required this.query,
+    required this.atMapCentre,
+    required this.onTap,
+  });
+
+  final AirspaceQuery query;
+  final bool atMapCentre;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final primary = query.primary;
+    final unit = primary?.units
+        .where((u) => u.frequenciesKhz.isNotEmpty)
+        .firstOrNull;
+    final others = query.current.length + query.aboveOrBelow.length - 1;
+    return Material(
+      color: scheme.surfaceContainer.withValues(alpha: 0.94),
+      elevation: 2,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+          child: Row(
+            children: [
+              Icon(Icons.headset_mic, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      primary == null
+                          ? 'No airspace at this altitude'
+                          : '${atMapCentre ? 'Map centre: ' : ''}'
+                                '${primary.name}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge,
+                    ),
+                    if (unit != null)
+                      // Frequencies first: a long call sign is what's cut.
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: unit.frequencies.take(3).join(' · '),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontFeatures: [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                            TextSpan(text: '  ${unit.callsign ?? unit.name}'),
+                          ],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      )
+                    else if (primary != null)
+                      Text(
+                        [
+                          if (primary.airspaceClass != null)
+                            'Class ${primary.airspaceClass}',
+                          primary.levels,
+                        ].join(' · '),
+                        style: theme.textTheme.bodySmall,
+                      ),
+                  ],
+                ),
+              ),
+              if (others > 0)
+                Text('+$others', style: theme.textTheme.labelMedium),
+              const Icon(Icons.expand_less),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Every airspace at the position, with its units and frequencies.
+class _AirspaceSheet extends StatelessWidget {
+  const _AirspaceSheet({required this.query, required this.atMapCentre});
+
+  final AirspaceQuery query;
+  final bool atMapCentre;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final altitude = query.altitudeFt;
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+      ),
+      child: SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          children: [
+            Text('Airspace', style: theme.textTheme.headlineSmall),
+            Text(
+              atMapCentre
+                  ? 'At the map centre, all levels'
+                  : altitude == null
+                  ? 'Here, all levels (no GPS altitude)'
+                  : 'Here, at ${(altitude / 100).round() * 100} ft',
+              style: theme.textTheme.bodyMedium,
+            ),
+            for (final a in query.current) _AirspaceTile(a),
+            if (query.aboveOrBelow.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Above or below you', style: theme.textTheme.titleSmall),
+              for (final a in query.aboveOrBelow)
+                Opacity(opacity: 0.6, child: _AirspaceTile(a)),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              'From the AIP\'s ENR 2.1. Check NOTAMs and the current AIP; '
+              'aerodrome tower and ground frequencies are in each '
+              'aerodrome\'s AD 2.18.',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AirspaceTile extends StatelessWidget {
+  const _AirspaceTile(this.airspace);
+  final Airspace airspace;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final a = airspace;
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(a.name, style: theme.textTheme.titleMedium),
+          Text(
+            [
+              a.kind.label,
+              if (a.airspaceClass != null) 'Class ${a.airspaceClass}',
+              a.levels,
+            ].join(' · '),
+            style: theme.textTheme.bodySmall,
+          ),
+          if (a.approximate)
+            Text(
+              'Boundary approximate: it follows a border or coastline.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+            ),
+          for (final u in a.units)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    [
+                      u.name,
+                      if (u.callsign != null) u.callsign!,
+                      if (u.hours != null) u.hours!,
+                    ].join(' · '),
+                    style: theme.textTheme.labelLarge,
+                  ),
+                  if (u.frequenciesKhz.isNotEmpty)
+                    SelectableText(
+                      u.frequencies.join('   '),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

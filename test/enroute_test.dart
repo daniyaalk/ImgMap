@@ -6,6 +6,7 @@ import 'package:imgmap/src/aip/aip_registry.dart';
 import 'package:imgmap/src/data/chart_store.dart';
 import 'package:imgmap/src/data/storage_memory.dart';
 import 'package:imgmap/src/enroute/enroute_model.dart';
+import 'package:imgmap/src/geo/lat_lng.dart';
 import 'package:imgmap/src/location/app_location.dart';
 import 'package:imgmap/src/location/location_controller.dart';
 import 'package:imgmap/src/ui/country_picker.dart';
@@ -36,6 +37,34 @@ void main() {
       jsonDecode(jsonEncode(data.toJson())) as Map<String, dynamic>,
     );
     expect(again.issues, hasLength(1));
+    expect(again.airspaces, hasLength(3));
+    expect(again.airspaces[1].units.single.frequenciesKhz, [124550, 134075]);
+  });
+
+  test('finds the airspace at a position and altitude', () {
+    final data = EnrouteData.fromJson(enrouteJson());
+    expect(data.airspaces.map((a) => a.name), [
+      'Delhi FIR',
+      'Delhi- LDP4',
+      'Delhi- UDP4',
+    ]);
+    const dudum = LatLng(27.8003, 76.5225);
+
+    final at24 = AirspaceQuery(data.airspaces, dudum, altitudeFt: 24000);
+    expect(at24.primary!.name, 'Delhi- LDP4');
+    // The FIR's drawn boundary misses DUDUM, but it's the nearest.
+    expect(at24.current.map((a) => a.name), ['Delhi- LDP4', 'Delhi FIR']);
+    expect(at24.aboveOrBelow.single.name, 'Delhi- UDP4');
+    expect(at24.primary!.units.single.frequencies, ['124.550', '134.075']);
+
+    final unknown = AirspaceQuery(data.airspaces, dudum);
+    expect(unknown.current, hasLength(3));
+    expect(unknown.aboveOrBelow, isEmpty);
+
+    // Far from everything: nothing.
+    expect(AirspaceQuery(data.airspaces, const LatLng(10, 60)).isEmpty, true);
+    expect(AtsUnit.formatFrequency(10018), '10018 kHz');
+    expect(AtsUnit.formatFrequency(118825), '118.825');
   });
 
   Widget app(Widget home) => MaterialApp(
@@ -76,6 +105,24 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect(find.textContaining('SIMULATED'), findsOneWidget);
     expect(find.text('250 kt'), findsOneWidget);
+
+    // At 24 000 ft over the routes: the lower sector, and who to call.
+    expect(find.text('Delhi- LDP4'), findsOneWidget);
+    expect(
+      find.text(
+        '124.550 · 134.075  Delhi Control/Delhi Radar (RSR)',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Delhi- LDP4'));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Here, at 24000 ft'), findsOneWidget);
+    expect(find.text('Above or below you'), findsOneWidget);
+    expect(find.text('132.975'), findsOneWidget);
+    expect(find.textContaining('Boundary approximate'), findsOneWidget);
+    await tester.tapAt(const Offset(20, 20)); // Dismiss the sheet.
+    await tester.pump(const Duration(seconds: 1));
 
     // Cached: opening again needs no download.
     await tester.pumpWidget(const SizedBox());

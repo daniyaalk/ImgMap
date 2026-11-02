@@ -6,7 +6,7 @@ AIPChart puts your position on published aviation charts. It's made for aviation
 
 <b>Source of the information</b>
 All charts, airways, fixes and airspace in the app come from the official Aeronautical Information Publication (AIP), published by each country's aviation authority:
-• India: AIP India (eAIP), published by the Airports Authority of India: https://aim-india.aai.aero/
+• India: AIP India (eAIP), published by the Airports Authority of India: https://aim-india.aai.aero.in/
 Always check the official source for the current, authoritative version.
 
 <b>Charts from the AIP</b>

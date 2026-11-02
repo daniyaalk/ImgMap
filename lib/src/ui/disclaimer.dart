@@ -8,7 +8,7 @@ const disclaimerVersion = 2;
 const contactEmail = 'me@daniyaalkhan.com';
 final _appRepo = Uri.parse('https://github.com/daniyaalk/ImgMap');
 final _backendRepo = Uri.parse('https://github.com/daniyaalk/imgmap-backend');
-final _aipIndia = Uri.parse('https://aim-india.aai.aero/');
+final _aipIndia = Uri.parse('https://aim-india.aai.aero.in/');
 
 /// Shown before the app can be used, until accepted; [onAccept] is called
 /// when the user confirms.
